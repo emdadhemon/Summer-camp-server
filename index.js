@@ -28,6 +28,7 @@ async function run() {
         await client.connect();
 
         const usersCollection = client.db("summerCamp").collection("users");
+        const classCollection = client.db("summerCamp").collection("classes");
 
         // users
 
@@ -74,7 +75,6 @@ async function run() {
         })
 
         //   instructor 
-
         app.get('/users/instructor/:email', async (req, res) => {
             const email = req.params.email;
             const query = { email: email }
@@ -97,6 +97,14 @@ async function run() {
             res.send(result);
 
         })
+
+        // classes
+
+        app.post("/class", async (req, res) => {
+            const newclass = req.body;
+            const result = await classCollection.insertOne(newclass);
+            res.send(result);
+        });
 
 
 
