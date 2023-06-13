@@ -106,6 +106,45 @@ async function run() {
             res.send(result);
         });
 
+        app.get('/class', async (req, res) => {
+            const result = await classCollection.find().toArray();
+            res.send(result);
+        });
+
+        app.patch('/class/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    status: 'approved'
+                },
+            };
+            const result = await classCollection.updateOne(filter, updateDoc);
+            res.send(result);
+
+        })
+
+        app.patch('/deny/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    status: 'Denied'
+                },
+            };
+            const result = await classCollection.updateOne(filter, updateDoc);
+            res.send(result);
+
+        })
+
+
+        app.get("/class/:email", async (req, res) => {
+            const query = { email: req.params.email }
+            const myclasses= await classCollection.find(query).toArray();
+            res.send(myclasses);
+        });
 
 
 
