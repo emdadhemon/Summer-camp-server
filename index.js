@@ -205,10 +205,35 @@ async function run() {
             const result = await paymentCollection.insertOne(payment);
             const id = payment.buyingId;
             const filter = { _id: new ObjectId(id) };
-            const updateResult = await cartCollection.deleteOne(filter);
-            res.send({ result, updateResult });
+            const updateDoc = {
+                $set: {
+                  paid: true,
+                  transactionId: payment.transactionId,
+                },
+              };
+
+              const modifyResult = await cartCollection.updateOne(filter, updateDoc);
+
+            res.send({ result, modifyResult });
         });
 
+
+        app.get("/payment", async(req,res)=>{
+            const result = await paymentCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.get('/payment/:email', async (req, res) => {
+            const email = req.params.email;
+            if (!email) {
+                res.send([]);
+            }
+            const query = { email: email };
+            const result = await paymentCollection.find(query).toArray();
+            res.send(result);
+        });
+
+        
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
