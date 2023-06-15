@@ -19,26 +19,29 @@ const client = new MongoClient(uri, {
         version: ServerApiVersion.v1,
         strict: true,
         deprecationErrors: true,
-    }
+    },
+    useNewUrlParser : true ,
+    useUnifiedTopology : true,
+    maxPoolSize : 10,
 });
+
 
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
 
         const usersCollection = client.db("summerCamp").collection("users");
         const classCollection = client.db("summerCamp").collection("classes");
         const cartCollection = client.db("summerCamp").collection("carts");
         const paymentCollection = client.db("summerCamp").collection("payments");
 
-        // users
 
-        app.get('/users', async (req, res) => {
+
+        // users
+        app.get('/users',  async (req, res) => {
             const result = await usersCollection.find().toArray();
             res.send(result);
         });
-
 
         app.post('/users', async (req, res) => {
             const user = req.body;
@@ -53,7 +56,7 @@ async function run() {
             res.send(result);
         });
 
-        app.get('/users/admin/:email', async (req, res) => {
+        app.get('/users/admin/:email',  async (req, res) => {
             const email = req.params.email;
             const query = { email: email }
             const user = await usersCollection.findOne(query);
@@ -77,8 +80,9 @@ async function run() {
         })
 
         //   instructor 
+
         app.get('/users/instructor/:email', async (req, res) => {
-            const email = req.params.email;
+            const email = req.params?.email
             const query = { email: email }
             const user = await usersCollection.findOne(query);
             const result = { admin: user?.role === 'instructor' }
@@ -98,6 +102,13 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updateDoc);
             res.send(result);
 
+        })
+
+        app.delete('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await usersCollection.deleteOne(query);
+            res.send(result);
         })
 
         // classes
@@ -148,6 +159,13 @@ async function run() {
             res.send(myclasses);
         });
 
+        app.delete('/class/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await classCollection.deleteOne(query);
+            res.send(result);
+        })
+
 
         // carts
 
@@ -185,6 +203,7 @@ async function run() {
 
 
         // payments
+
         app.post("/create-payment-intent", async (req, res) => {
             const buying = req.body;
             const price = buying.price;
