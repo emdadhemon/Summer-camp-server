@@ -1,19 +1,19 @@
 const express = require('express');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const cors = require('cors');
 require('dotenv').config()
+const stripe = require('stripe')(process.env.SECRET_KEY)
 const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
-// summer-camp
-// KZipjHaHpZI69095
 
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const uri = "mongodb+srv://summer-camp:KZipjHaHpZI69095@cluster0.ze5l9xc.mongodb.net/?retryWrites=true&w=majority";
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ze5l9xc.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
+
 const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
@@ -30,6 +30,7 @@ async function run() {
         const usersCollection = client.db("summerCamp").collection("users");
         const classCollection = client.db("summerCamp").collection("classes");
         const cartCollection = client.db("summerCamp").collection("carts");
+        const paymentCollection = client.db("summerCamp").collection("payments");
 
         // users
 
@@ -143,7 +144,7 @@ async function run() {
 
         app.get("/class/:email", async (req, res) => {
             const query = { email: req.params.email }
-            const myclasses= await classCollection.find(query).toArray();
+            const myclasses = await classCollection.find(query).toArray();
             res.send(myclasses);
         });
 
@@ -154,8 +155,59 @@ async function run() {
             const item = req.body;
             const result = await cartCollection.insertOne(item);
             res.send(result);
-          })
+        })
 
+        app.get('/carts', async (req, res) => {
+            const email = req.query.email;
+
+            if (!email) {
+                res.send([]);
+            }
+            const query = { email: email };
+            const result = await cartCollection.find(query).toArray();
+            res.send(result);
+        });
+
+        app.delete('/carts/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await cartCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        app.get('/carts/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await cartCollection.findOne(query);
+            res.send(result);
+        })
+
+
+
+        // payments
+        app.post("/create-payment-intent", async (req, res) => {
+            const buying = req.body;
+            const price = buying.price;
+            const amount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                currency: "USD",
+                amount,
+                payment_method_types: ["card"],
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
+
+
+        app.post("/payment", async (req, res) => {
+            const payment = req.body;
+            const result = await paymentCollection.insertOne(payment);
+            const id = payment.buyingId;
+            const filter = { _id: new ObjectId(id) };
+            const updateResult = await cartCollection.deleteOne(filter);
+            res.send({ result, updateResult });
+        });
 
 
         // Send a ping to confirm a successful connection
